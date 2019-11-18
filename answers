@@ -1,0 +1,63 @@
+-- Return to Window Functions!
+-- BASIC SYNTAX
+-- SELECT <aggregator> OVER(PARTITION BY <col1> ORDER BY <col2>)
+-- PARTITION BY (like GROUP BY) a column to do the aggregation within particular category in <col1>
+-- Choose what order to apply the aggregator over (if it's a type of RANK)
+-- Example SELECT SUM(sales) OVER(PARTITION BY department)
+-- Feel free to google RANK examples too.
+
+-- Return a list of all customers, RANKED in order from highest to lowest total spendings
+-- WITHIN the country they live in.
+
+WITH order_info AS ( --first, get the basic necessary info together
+SELECT *,
+	c.customer_id as c_customer_id,
+	o.customer_id as o_customer_id, --this isn't necessary, but avoids an 'ambiguous' error I was getting
+	od.unit_price*od.quantity*(1-od.discount) as total
+FROM orders as o 
+	JOIN order_details as od ON o.order_id = od.order_id
+	JOIN products as p ON od.product_id = p.product_id
+	JOIN customers as c ON o.customer_id = c.customer_id
+),
+customer_totals as ( -- THEN, get totals for each customer
+SELECT 
+	c_customer_id,
+	country,
+	sum(total) as total
+FROM order_info
+GROUP BY c_customer_id, country --customers map one-to-one 
+)
+SELECT *,
+	RANK() OVER(PARTITION BY country ORDER BY total DESC)
+FROM customer_totals;
+
+
+
+-- Return the same list as before, but with only the top 3 customers in each country.
+WITH order_info AS ( --first, get the basic necessary info together
+SELECT *,
+	c.customer_id as c_customer_id,
+	o.customer_id as o_customer_id, --this isn't necessary, but avoids an 'ambiguous' error I was getting
+	od.unit_price*od.quantity*(1-od.discount) as total
+FROM orders as o 
+	JOIN order_details as od ON o.order_id = od.order_id
+	JOIN products as p ON od.product_id = p.product_id
+	JOIN customers as c ON o.customer_id = c.customer_id
+), --mind the comma between CTE's
+customer_totals as ( -- THEN, get totals for each customer
+SELECT 
+	c_customer_id,
+	country,
+	sum(total) as total
+FROM order_info
+GROUP BY c_customer_id, country --customers map one-to-one 
+)
+, --mind the comma between CTE's
+top_customers as ( --customers ranked by total WITHIN the country they live
+SELECT *,
+	RANK() OVER(PARTITION BY country ORDER BY total DESC)
+FROM customer_totals
+)
+SELECT *
+FROM top_customers
+WHERE rank <= 3; --return just the top 3 for each country
