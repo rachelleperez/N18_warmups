@@ -25,7 +25,7 @@ SELECT
 	country,
 	sum(total) as total
 FROM order_info
-GROUP BY c_customer_id, country --customers map one-to-one 
+GROUP BY c_customer_id, country --customers map one-to-one to country
 )
 SELECT *,
 	RANK() OVER(PARTITION BY country ORDER BY total DESC)
@@ -50,7 +50,7 @@ SELECT
 	country,
 	sum(total) as total
 FROM order_info
-GROUP BY c_customer_id, country --customers map one-to-one 
+GROUP BY c_customer_id, country --customers map one-to-one to country
 )
 , --mind the comma between CTE's
 top_customers as ( --customers ranked by total WITHIN the country they live
